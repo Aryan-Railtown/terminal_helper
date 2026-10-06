@@ -30,6 +30,17 @@ $configFile = Join-Path $sageHome "config.toml"
 if (-not (Test-Path $envFile)) { Copy-Item (Join-Path $repo ".env.example") $envFile }
 if (-not (Test-Path $configFile)) { Copy-Item (Join-Path $repo "config.example.toml") $configFile }
 
+# Point `railtracks viz --beta` (run from this folder) at sage's run logs. railtracks reads
+# the .env in the folder it starts from; this repo .env is gitignored and holds no keys.
+$repoEnv = Join-Path $repo ".env"
+$vizLine = if ($env:SAGE_HOME) { "RAILTRACKS_HOME=$env:SAGE_HOME" } else { 'RAILTRACKS_HOME=${USERPROFILE}/.sage' }
+$hasViz = (Test-Path $repoEnv) -and (Select-String -Path $repoEnv -Pattern '^\s*RAILTRACKS_HOME\s*=' -Quiet)
+if (-not $hasViz) {
+    $sep = ""
+    if ((Test-Path $repoEnv) -and (Get-Content $repoEnv -Raw) -and -not (Get-Content $repoEnv -Raw).EndsWith("`n")) { $sep = "`r`n" }
+    Add-Content -Path $repoEnv -Value "$sep$vizLine" -Encoding ascii
+}
+
 Write-Host ""
 Write-Host "sage is installed." -ForegroundColor Green
 Write-Host "Next steps:"
@@ -37,3 +48,4 @@ Write-Host "  1. Add your API key:   notepad `"$envFile`""
 Write-Host "     (Gemini has a free tier: https://aistudio.google.com/apikey)"
 Write-Host "  2. Open a NEW terminal, then check setup:   sage --debug"
 Write-Host "  3. Ask something:      sage how do I find what is using port 3000"
+Write-Host "  4. View past runs:     uv run railtracks viz --beta   (from this folder, then open http://localhost:3031)"

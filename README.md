@@ -40,6 +40,8 @@ sage .                                       # what is this folder / how do I ru
 ## Demo — what it looks like 
 ![Demo](demo.png)
 
+### Visualizer
+
 ## Modes
 
 | Command | What it does |
@@ -49,7 +51,7 @@ sage .                                       # what is this folder / how do I ru
 | `... \| sage [question]` | Explains piped output. With no question it defaults to "explain this / fix the error". |
 | `sage --model sonnet ...` | Use another model for one call. Aliases: `sonnet`, `opus`, `haiku`, `fable`, `flash-lite`. Also accepts any id (`claude-…`, `gemini-…`, `gpt-…`) or `provider:id`. |
 | `sage --model sonnet` | With no question, shows what the alias resolves to and whether its key is set. |
-| `sage --debug ...` | Logs each tool call to stderr, prints tracebacks, keeps railtracks run logs in `~/.sage/.railtracks`. |
+| `sage --debug ...` | Logs each tool call to stderr and prints tracebacks. |
 | `sage --debug` | With no question, prints diagnostics: config, model, key status, shell, history. |
 | `sage --tools` | Lists the tools sage can use, and which ones ask first. |
 | `sage --plain ...` | Prints raw text instead of live-rendered markdown (automatic when output is piped). |
@@ -102,7 +104,22 @@ Keys are read from `~/.sage/.env` or your environment: `GEMINI_API_KEY`, `ANTHRO
 
 - `sage --new` forgets the recent conversation. History expires after 30 minutes anyway.
 - In PowerShell, quote questions containing `$`, `?`, `|`, `;`, `(` or `&`, e.g. `sage "why does $x | foo fail?"`.
-- `--debug` (or `SAGE_DEBUG=1`) keeps railtracks run logs in `~/.sage/.railtracks`; view them with `railtracks viz` from `~/.sage`.
+
+## Viewing runs (Railtracks visualizer)
+
+Every sage run is logged by Railtracks to `%USERPROFILE%\.sage\.railtracks`, no matter which terminal or folder you ran it from. That's about 80 KB per question. The logs hold your questions and tool output, and they never leave your machine. To browse them, run this from the project folder:
+
+```powershell
+uv run railtracks viz --beta      # then open http://localhost:3031
+```
+
+This works because `install.ps1` adds one line to the project's gitignored `.env`, pointing the visualizer at sage's logs instead of the project folder:
+
+```
+RAILTRACKS_HOME=${USERPROFILE}/.sage
+```
+
+If you installed manually, add that line yourself. To turn logging off, set `RAILTRACKS_DISABLE_EVENTS=True`.
 
 ## Development
 

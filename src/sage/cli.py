@@ -41,7 +41,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--new", action="store_true", help="forget the recent conversation first")
     parser.add_argument("--model", help="model for this call: alias (sonnet, opus, haiku, flash-lite), id, or provider:id")
-    parser.add_argument("--debug", action="store_true", help="show tool calls, tracebacks and keep railtracks logs; alone, print diagnostics")
+    parser.add_argument("--debug", action="store_true", help="show tool calls and tracebacks; alone, print diagnostics")
     parser.add_argument("--tools", action="store_true", help="list the tools sage can use and exit")
     parser.add_argument("--plain", action="store_true", help="print raw text instead of rendered markdown")
     parser.add_argument("--version", action="version", version=f"sage {__version__}")
@@ -55,10 +55,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def prepare_env(home: Path) -> None:
-    """Must run before railtracks is imported: keep its run data out of the user's cwd."""
+    """Must run before railtracks is imported: every run is logged to <home>/.railtracks
+    (view with `railtracks viz --beta` from the project folder) instead of a .railtracks folder in the user's cwd.
+    Opt out by setting RAILTRACKS_DISABLE_EVENTS=True yourself."""
     os.environ["RAILTRACKS_HOME"] = str(home)
-    if not os.environ.get("SAGE_DEBUG"):
-        os.environ.setdefault("RAILTRACKS_DISABLE_EVENTS", "True")
 
 
 def read_piped_input(stream=None, limit: int = MAX_PIPED_CHARS) -> str:
@@ -101,7 +101,8 @@ def print_diagnostics(cfg: Config, home: Path) -> None:
     print(f"shell:    {detect_shell()}")
     print(f"cwd:      {os.getcwd()}")
     print(f"history:  {len(turns)} recent turn(s) in {cfg.history_path}")
-    print(f"logs:     {home / '.railtracks'} (written with --debug)")
+    logging = "off (RAILTRACKS_DISABLE_EVENTS)" if os.environ.get("RAILTRACKS_DISABLE_EVENTS") else "on"
+    print(f"run logs: {home / '.railtracks'} [{logging}]  view: railtracks viz --beta (project folder)")
 
 
 def build_flow(agent, renderer: StreamRenderer):

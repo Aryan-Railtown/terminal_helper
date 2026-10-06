@@ -21,19 +21,18 @@ def test_no_question_prints_usage(capsys):
     assert "usage" in capsys.readouterr().out.lower()
 
 
-def test_prepare_env_sets_railtracks_vars(monkeypatch, tmp_path):
+def test_prepare_env_always_logs_to_sage_home(monkeypatch, tmp_path):
     for var in ("RAILTRACKS_HOME", "RAILTRACKS_DISABLE_EVENTS", "SAGE_DEBUG"):
         monkeypatch.delenv(var, raising=False)
     cli.prepare_env(tmp_path)
     assert os.environ["RAILTRACKS_HOME"] == str(tmp_path)
-    assert os.environ["RAILTRACKS_DISABLE_EVENTS"] == "True"
-
-
-def test_prepare_env_debug_keeps_events(monkeypatch, tmp_path):
-    monkeypatch.delenv("RAILTRACKS_DISABLE_EVENTS", raising=False)
-    monkeypatch.setenv("SAGE_DEBUG", "1")
-    cli.prepare_env(tmp_path)
     assert "RAILTRACKS_DISABLE_EVENTS" not in os.environ
+
+
+def test_prepare_env_respects_explicit_opt_out(monkeypatch, tmp_path):
+    monkeypatch.setenv("RAILTRACKS_DISABLE_EVENTS", "True")
+    cli.prepare_env(tmp_path)
+    assert os.environ["RAILTRACKS_DISABLE_EVENTS"] == "True"
 
 
 def test_missing_key_is_config_error(monkeypatch, tmp_path, capsys):
