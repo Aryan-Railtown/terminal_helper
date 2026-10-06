@@ -2288,7 +2288,7 @@ dev = [
 requires-dist = [
     { name = "psutil", specifier = ">=5.9" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "railtracks", specifier = ">=1.5.6" },
+    { name = "railtracks", specifier = "==1.5.6" },
     { name = "rich", specifier = ">=13" },
 ]
 

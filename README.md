@@ -1,6 +1,30 @@
 # Sage — Terminal Helper for windows
 
-A terminal helper agent for Windows, built on [railtracks](https://docs.railtracks.org). Ask it anything from your shell:
+**sage** is an AI helper that lives in your Windows terminal. Ask it how to do something, why a command failed, or what a project is, and it answers in your shell's syntax (PowerShell, cmd or Git Bash). It can look at your files and git state to give grounded answers, and it only ever runs a command after you approve it.
+
+Built with [Railtracks](https://docs.railtracks.org) **1.5.6** (`railtracks==1.5.6`). Runs locally on a laptop; the only thing you need is a model API key, and Gemini's free tier works.
+
+## Quick start (Windows, about 2 minutes)
+
+You need Windows 10/11, git, and an API key. You don't need Python: the installer sets up [uv](https://docs.astral.sh/uv/), which fetches Python for you.
+
+```powershell
+git clone https://github.com/Aryan-Railtown/terminal_helper.git
+cd terminal_helper
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+notepad $HOME\.sage\.env      # paste your key after GEMINI_API_KEY=  (free key: https://aistudio.google.com/apikey)
+```
+
+Then open a **new** terminal:
+
+```powershell
+sage --debug                    # checks setup: model, key found, shell detected
+sage how do I find what is using port 3000
+```
+
+The installer is safe to re-run; it upgrades sage and never overwrites your `.env` or config.
+
+## Examples
 
 ```powershell
 sage how do I find what is using port 3000
@@ -12,6 +36,7 @@ sage "what did I just break?"                # looks at recent commands + git st
 npm run build 2>&1 | sage explain this error # pipe output in
 sage .                                       # what is this folder / how do I run it
 ```
+
 ## Demo — what it looks like 
 ![Demo](demo.png)
 
@@ -32,31 +57,36 @@ sage .                                       # what is this folder / how do I ru
 
 sage knows which shell you're in (PowerShell 7, Windows PowerShell, cmd or Git Bash) and your current directory, and answers in that shell's syntax.
 
-## Install
+## Manual install
 
-Requires [uv](https://docs.astral.sh/uv/).
-
-```powershell
-git clone <this repo>; cd terminal_helper
-uv tool install -e .
-```
-
-Then add a key. The default model is Gemini Flash-Lite, which has a free tier ([get a key](https://aistudio.google.com/apikey)):
+If you already have [uv](https://docs.astral.sh/uv/):
 
 ```powershell
-mkdir ~/.sage -Force; Add-Content ~/.sage/.env "GEMINI_API_KEY=your-key"
+uv tool install .               # from the repo folder; puts `sage` on your PATH
+uv tool update-shell            # first time only, then open a new terminal
+mkdir $HOME\.sage -Force
+copy .env.example $HOME\.sage\.env
+copy config.example.toml $HOME\.sage\config.toml
 ```
+
+With plain pip (Python 3.11+): `pip install .` installs the same `sage` command. Exact dependency versions are pinned in `uv.lock` and `requirements.txt`.
+
+**Configuration** lives in `%USERPROFILE%\.sage\`:
+
+| File | Purpose | Template |
+|---|---|---|
+| `.env` | API keys (only the one for your provider is needed) | [`.env.example`](.env.example) |
+| `config.toml` | provider, model, history settings | [`config.example.toml`](config.example.toml) |
+
+**Uninstall:** `uv tool uninstall terminal-helper`, then delete `%USERPROFILE%\.sage`.
 
 ## Swapping models
 
-Create `~/.sage/config.toml`:
+Edit `%USERPROFILE%\.sage\config.toml`; it has ready-made blocks for Gemini, OpenAI, Claude and local Ollama. Uncomment one:
 
 ```toml
 provider = "gemini"          # gemini | anthropic | openai | openai_compatible
 model = "gemini-3.1-flash-lite"
-# api_base = "http://localhost:11434/v1"   # for openai_compatible (e.g. Ollama)
-# history_turns = 6
-# history_ttl_minutes = 30
 ```
 
 Keys are read from `~/.sage/.env` or your environment: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`. To try a model once, run `sage --model <id> ...`.
@@ -81,3 +111,7 @@ uv sync
 uv run pytest                 # offline unit tests
 uv run pytest -m live         # real-model checks; needs a key. Pick the model with SAGE_LIVE_MODEL=sonnet
 ```
+
+## License
+
+[MIT](LICENSE)

@@ -12,3 +12,12 @@ wheels/
 # Local scratch docs
 flow.md
 decisions.md
+
+.railtracks
+
+# Secrets and local run data
+.env
+.env.*
+!.env.example
+.railtracks/
+.pytest_cache/

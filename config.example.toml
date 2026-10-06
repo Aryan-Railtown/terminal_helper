@@ -1,0 +1,25 @@
+# sage config. Copy to %USERPROFILE%\.sage\config.toml (install.ps1 does it for you).
+# Exactly one provider block should be active (uncommented). Keys go in ~/.sage/.env.
+# To try another model for one call without editing this file:
+#   sage --model sonnet ...   (aliases: sonnet, opus, haiku, fable, flash-lite; or any model id)
+
+# --- Gemini (default: lightweight, has a free tier) ------------------------
+provider = "gemini"
+model = "gemini-3.1-flash-lite"      # or "gemini-3.5-flash-lite"
+
+# --- OpenAI ------------------------------------------------------------------
+# provider = "openai"
+# model = "gpt-6-luna"               # lightweight; "gpt-6.1-sol" or "gpt-6-astra" for harder questions
+
+# --- Claude (Anthropic) ------------------------------------------------------
+# provider = "anthropic"
+# model = "claude-haiku-4-5-20251001"  # lightweight; "claude-sonnet-5-5" or "claude-opus-5-5" for harder questions
+
+# --- Local / OpenAI-compatible server (e.g. Ollama), no key needed -----------
+# provider = "openai_compatible"
+# model = "llama3.2"
+# api_base = "http://localhost:11434/v1"
+
+# --- Shared settings ---------------------------------------------------------
+# history_turns = 6                  # follow-up context kept between calls
+# history_ttl_minutes = 30           # older turns are forgotten
