@@ -41,7 +41,7 @@ sage .                                       # what is this folder / how do I ru
 ![Demo](demo.png)
 
 ### Visualizer
-
+![Observability](viz.png)
 ## Modes
 
 | Command | What it does |
