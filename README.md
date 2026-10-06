@@ -12,6 +12,8 @@ sage "what did I just break?"                # looks at recent commands + git st
 npm run build 2>&1 | sage explain this error # pipe output in
 sage .                                       # what is this folder / how do I run it
 ```
+## Demo — what it looks like 
+![Demo](demo.png)
 
 ## Modes
 
@@ -25,6 +27,7 @@ sage .                                       # what is this folder / how do I ru
 | `sage --debug ...` | Logs each tool call to stderr, prints tracebacks, keeps railtracks run logs in `~/.sage/.railtracks`. |
 | `sage --debug` | With no question, prints diagnostics: config, model, key status, shell, history. |
 | `sage --tools` | Lists the tools sage can use, and which ones ask first. |
+| `sage --plain ...` | Prints raw text instead of live-rendered markdown (automatic when output is piped). |
 | `sage --new` | Forgets the recent conversation. |
 
 sage knows which shell you're in (PowerShell 7, Windows PowerShell, cmd or Git Bash) and your current directory, and answers in that shell's syntax.

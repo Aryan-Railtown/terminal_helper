@@ -49,6 +49,56 @@ def test_finish_without_chunks_prints_nothing():
     assert buf.getvalue() == ""
 
 
+def test_afeed_smooths_but_keeps_exact_text():
+    import asyncio
+
+    r, buf = make(markdown=True)
+    chunk = "Rebasing replays your commits on top of another branch, " * 3
+
+    async def run():
+        await r.afeed(chunk)
+        await r.afeed("```bash\ngit rebase main\n```\n")
+
+    asyncio.run(run())
+    r.finish()
+    assert r.text == chunk + "```bash\ngit rebase main\n```\n"
+    assert len(r._chunks) > 2  # revealed in several steps, not one
+    assert "git rebase main" in buf.getvalue()
+
+
+def test_afeed_plain_mode_is_unpaced():
+    import asyncio
+
+    r, buf = make(markdown=False)
+    asyncio.run(r.afeed("hello world " * 20))
+    assert r._chunks == ["hello world " * 20]
+
+
+def test_status_spinner_then_answer():
+    r, buf = make(markdown=True)
+    r.status("checking git…")
+    r.feed("All clean.")
+    r.finish()
+    out = buf.getvalue()
+    assert "checking git" in out and "All clean." in out
+
+
+def test_status_is_noop_in_plain_mode():
+    r, buf = make(markdown=False)
+    r.status("thinking…")
+    r.finish()
+    assert buf.getvalue() == ""
+
+
+def test_instrument_reports_status(monkeypatch):
+    from sage import agent, tools
+
+    seen = []
+    monkeypatch.setattr(tools, "show_status", seen.append)
+    agent.instrument(tools.which)("python")
+    assert seen == [tools.STATUS["which"], "thinking…"]
+
+
 def test_plain_flag():
     assert cli.parse_args(["--plain", "hi"]).plain is True
     assert cli.parse_args(["hi"]).plain is False

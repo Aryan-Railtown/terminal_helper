@@ -112,7 +112,7 @@ def build_flow(agent, renderer: StreamRenderer):
         """Stream sage's answer to the terminal and return the final text."""
         stream = rt.astream(agent, user_input=prompt)
         async for chunk in stream:
-            renderer.feed(chunk)
+            await renderer.afeed(chunk)
         renderer.finish()
         result = stream.result
         # .result is authoritative; fall back to the streamed text if it has none.
@@ -185,6 +185,8 @@ def main(argv: list[str] | None = None) -> int:
 
     renderer = make_renderer(plain=args.plain)
     tools.pause_output = renderer.pause
+    tools.show_status = renderer.status
+    renderer.status("thinking…")
     try:
         agent = build_agent(cfg, shell, cwd, debug=debug)
         result = asyncio.run(build_flow(agent, renderer).ainvoke(prompt))

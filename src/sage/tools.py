@@ -20,12 +20,25 @@ from sage.shell import DEFAULT_SHELL, run_in_shell, truncate
 CURRENT_SHELL = DEFAULT_SHELL
 
 
-def _noop() -> None:
+def _noop(*args) -> None:
     pass
 
 
 # Set by the CLI: freezes the live answer display before something else writes to the terminal.
 pause_output = _noop
+# Set by the CLI: shows a spinner status line, e.g. "checking git…" (None clears it).
+show_status = _noop
+
+# Spinner text while each tool runs (run_command has its own prompt instead).
+STATUS = {
+    "get_environment": "checking your environment…",
+    "list_directory": "looking at files…",
+    "read_file": "reading file…",
+    "which": "checking what's installed…",
+    "command_help": "reading the help…",
+    "recent_commands": "reading shell history…",
+    "git_overview": "checking git…",
+}
 
 DECLINED = "User declined to run the command. Do not retry it; give the command as advice instead."
 
