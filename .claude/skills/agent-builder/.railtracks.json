@@ -1,0 +1,12 @@
+{
+  "manifest_version": 1,
+  "skill": "agent-builder",
+  "target": "claude",
+  "package_version": "1.5.6",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "sha256": "484a4408cdcd0ec806c4bad920c3ea28fa9b6c2fa3112a9158904f9daf6402cb"
+    }
+  ]
+}
