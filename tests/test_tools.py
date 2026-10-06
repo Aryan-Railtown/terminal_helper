@@ -54,20 +54,11 @@ def test_which_hit_and_miss():
     assert "not found" in tools.which("definitely-not-a-real-cmd-xyz").lower()
 
 
-def test_run_command_confirmed(monkeypatch):
-    monkeypatch.setattr(tools, "confirm", lambda command, reason: True)
+def test_run_command_runs_without_prompting(monkeypatch):
+    # Approval now lives in the user_approval pre_verifier, not in the tool body.
+    monkeypatch.setattr(tools, "confirm", lambda command, reason: pytest.fail("tool must not prompt"))
     out = tools.run_command("echo hi", "test")
     assert "hi" in out and "exit code: 0" in out
-
-
-@pytest.mark.parametrize("answer", [False])
-def test_run_command_declined(monkeypatch, answer):
-    ran = []
-    monkeypatch.setattr(tools, "confirm", lambda command, reason: answer)
-    monkeypatch.setattr(tools, "run_in_shell", lambda *a, **k: ran.append(a))
-    out = tools.run_command("echo hi", "test")
-    assert out == tools.DECLINED
-    assert not ran
 
 
 @pytest.mark.parametrize(
@@ -81,8 +72,7 @@ def test_run_command_declined(monkeypatch, answer):
         "shutdown /s /t 0",
     ],
 )
-def test_run_command_denylist_blocks_even_when_confirmed(monkeypatch, command):
-    monkeypatch.setattr(tools, "confirm", lambda command, reason: True)
+def test_run_command_denylist_is_defence_in_depth(monkeypatch, command):
     monkeypatch.setattr(tools, "run_in_shell", lambda *a, **k: pytest.fail("should not run"))
     assert "refused" in tools.run_command(command, "test").lower()
 

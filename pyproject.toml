@@ -1,7 +1,7 @@
 [project]
 name = "terminal-helper"
 version = "0.1.0"
-description = "sage: a terminal helper agent for Windows, built on railtracks"
+description = "sage: a local context engine with an agent attached, for your terminal (built on railtracks)"
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -1,6 +1,18 @@
 # Sage — Terminal Helper for windows
 
-**sage** is an AI helper that lives in your Windows terminal. Ask it how to do something, why a command failed, or what a project is, and it answers in your shell's syntax (PowerShell, cmd or Git Bash). It can look at your files and git state to give grounded answers, and it only ever runs a command after you approve it.
+**sage is not another terminal chatbot.** Think of it as a **local context engine with an agent attached**. Its value comes from what it knows about *your* machine at the moment you ask: which shell you're in, which folder, what git says, which commands you just ran, and the error you just piped into it. Only after gathering that context does a model reason over it.
+
+So `sage why did that fail?` isn't answered from generic knowledge. sage looks at your actual shell history and repo state first, then answers in your shell's syntax (PowerShell, cmd or Git Bash).
+
+### The pieces
+
+| Piece | What it does | Where |
+|---|---|---|
+| **Context engine** | Detects your shell and current folder, reads piped output, and has read-only tools for files, `which`, command help, git status/log/diff, and your recent shell history (with secrets redacted). It gathers facts instead of guessing. | `shell.py`, `tools.py`, `cli.py` |
+| **Agent** | A Railtracks `agent_node` that decides which context to pull, then answers concisely, streamed live as markdown. Short follow-ups reuse recent turns. | `agent.py`, `render.py`, `history.py` |
+| **Gated actions** | The one tool that changes things, `run_command`, sits behind a Railtracks `pre_verifier` (`user_approval`). You see the exact command and approve with y/N; destructive commands are refused outright. | `verifiers.py` |
+| **Observability** | Every run, including each tool call and each approve or decline, is logged locally and browsable in the Railtracks visualizer. | `~/.sage/.railtracks` |
+| **Bring your own model** | Gemini (free tier) by default; OpenAI, Claude or a local Ollama model with a one-line config change. | `config.py` |
 
 Built with [Railtracks](https://docs.railtracks.org) **1.5.6** (`railtracks==1.5.6`). Runs locally on a laptop; the only thing you need is a model API key, and Gemini's free tier works.
 
@@ -97,7 +109,7 @@ Keys are read from `~/.sage/.env` or your environment: `GEMINI_API_KEY`, `ANTHRO
 
 - **Read-only tools run freely:** environment info, directory listing, reading text files, `which`, command help, git status/log/diff stats, and your recent shell commands.
 - **Shell history is sent to the model** when sage uses `recent_commands` (PowerShell's PSReadLine history or `~/.bash_history`). Obvious secrets (`*_KEY=`, `token:`, `sk-…`) are redacted, but don't count on that for everything.
-- **Running a command always asks first.** sage shows the exact command and why, then waits for `y`. Anything else declines. With no interactive console it always declines.
+- **Running a command always asks first.** `run_command` is gated by a Railtracks [`pre_verifier`](https://docs.railtracks.org/documentation/agent_design/middleware/verifiers/overview/) named `user_approval`. sage shows the exact command and why, then waits for `y`; anything else declines, and with no interactive console it always declines. On a decline the command never runs, and the model is told why so it gives the command as advice instead. Every approve or decline is recorded in the run logs, so you can see it in `railtracks viz`.
 - **A small denylist** (format, diskpart, `reg delete`, shutdown, `rm -rf /`, …) is refused even if you say yes.
 
 ## Usage notes

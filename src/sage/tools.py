@@ -339,12 +339,12 @@ def run_command(command: str, reason: str) -> str:
         reason: One short sentence telling the user why you want to run it.
 
     Returns:
-        The exit code and output, or a message saying the user declined / the command was refused.
+        The exit code and output. If the user declines, the call fails with that reason instead.
     """
+    # Approval happens in the `user_approval` pre_verifier (sage/verifiers.py) before this
+    # body runs. The denylist check here is defence in depth in case the node is built without it.
     if is_denied(command):
         return "Refused: this command is on sage's denylist of destructive commands. Do not run it; explain instead."
-    if not confirm(command, reason):
-        return DECLINED
     return run_in_shell(command, CURRENT_SHELL)
 
 
@@ -359,5 +359,5 @@ ALL_TOOLS = [
     run_command,
 ]
 
-# Tools that ask the user before doing anything.
+# Tools gated by a railtracks pre_verifier that asks the user (see sage/verifiers.py).
 GATED = {"run_command"}

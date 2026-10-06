@@ -94,10 +94,12 @@ def trace(fn):
 def build_agent(cfg: Config, shell: str, cwd: str, debug: bool = False):
     import railtracks as rt
 
+    from sage import verifiers
+
     tools.CURRENT_SHELL = shell
     return rt.agent_node(
         "Sage",
-        tool_nodes=[rt.function_node(instrument(fn, debug)) for fn in tools.ALL_TOOLS],
+        tool_nodes=[verifiers.tool_node(fn, wrap=lambda f: instrument(f, debug)) for fn in tools.ALL_TOOLS],
         llm=build_llm(cfg),
         system_message=build_system_message(shell, cwd),
     )
