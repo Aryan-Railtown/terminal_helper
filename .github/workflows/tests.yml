@@ -1,0 +1,43 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Unit tests (offline, no API key)
+        run: |
+          uv sync
+          uv run pytest
+
+      - name: Installer smoke test (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          ./install.sh --no-path-update
+          bin="$(uv tool dir --bin)"
+          "$bin/sage" --version
+          "$bin/sage" --debug
+          "$bin/sage" --tools
+
+      - name: Installer smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./install.ps1 -NoPathUpdate
+          $bin = uv tool dir --bin
+          & "$bin\sage.exe" --version
+          & "$bin\sage.exe" --debug
+          & "$bin\sage.exe" --tools

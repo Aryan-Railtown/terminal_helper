@@ -2,24 +2,49 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from collections.abc import Iterable
 
-DEFAULT_SHELL = "powershell"
+# Shell ids sage knows how to run commands in and read history for.
+SHELLS = ("pwsh", "powershell", "cmd", "bash", "zsh", "fish", "sh")
 
-# Process name (lowercased) -> shell id.
-KNOWN_SHELLS = {
-    "pwsh.exe": "pwsh",
+# Normalised process name (lowercase, no .exe, no login-shell dash) -> shell id.
+_PROCESS_SHELLS = {
     "pwsh": "pwsh",
-    "powershell.exe": "powershell",
-    "cmd.exe": "cmd",
-    "bash.exe": "bash",
+    "powershell": "powershell",
+    "cmd": "cmd",
     "bash": "bash",
-    "zsh": "bash",
-    "sh.exe": "bash",
+    "zsh": "zsh",
+    "fish": "fish",
+    "sh": "sh",
+    "dash": "sh",
 }
 
 MAX_OUTPUT_CHARS = 4000
+
+
+def default_shell() -> str:
+    """Shell to assume when none is found among the parent processes."""
+    if sys.platform == "win32":
+        return "powershell"  # $SHELL is unreliable on Windows (often set by Git Bash)
+    from_env = shell_for_process(os.path.basename(os.environ.get("SHELL", "")))
+    if from_env:
+        return from_env
+    return "zsh" if sys.platform == "darwin" else "bash"
+
+
+# Kept for callers that need a static default before detection runs.
+DEFAULT_SHELL = "powershell" if sys.platform == "win32" else ("zsh" if sys.platform == "darwin" else "bash")
+
+
+def shell_for_process(name: str) -> str | None:
+    """Map a process name like 'pwsh.exe', '-zsh' or 'ZSH' to a shell id (None if not a shell)."""
+    name = name.strip().lower().lstrip("-")
+    if name.endswith(".exe"):
+        name = name[:-4]
+    return _PROCESS_SHELLS.get(name)
 
 
 def _parent_process_names() -> list[str]:
@@ -35,10 +60,10 @@ def detect_shell(process_names: Iterable[str] | None = None) -> str:
     """Return the nearest shell in the parent-process chain (skipping uv/python/sage)."""
     names = _parent_process_names() if process_names is None else process_names
     for name in names:
-        shell = KNOWN_SHELLS.get(name.lower())
+        shell = shell_for_process(name)
         if shell:
             return shell
-    return DEFAULT_SHELL
+    return default_shell()
 
 
 def shell_argv(shell: str, command: str) -> list[str]:
@@ -46,6 +71,8 @@ def shell_argv(shell: str, command: str) -> list[str]:
         return [shell, "-NoProfile", "-NonInteractive", "-Command", command]
     if shell == "cmd":
         return ["cmd", "/c", command]
+    if shell in ("zsh", "fish", "sh"):
+        return [shell, "-c", command]
     return ["bash", "-c", command]
 
 

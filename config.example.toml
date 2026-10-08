@@ -1,4 +1,4 @@
-# sage config. Copy to %USERPROFILE%\.sage\config.toml (install.ps1 does it for you).
+# sage config. Copy to ~/.sage/config.toml (the installer does it for you).
 # Exactly one provider block should be active (uncommented). Keys go in ~/.sage/.env.
 # To try another model for one call without editing this file:
 #   sage --model sonnet ...   (aliases: sonnet, opus, haiku, fable, flash-lite; or any model id)

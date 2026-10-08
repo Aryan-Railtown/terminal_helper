@@ -59,6 +59,10 @@ _DENY_PATTERNS = [
     r"\bcipher\s+/w\b",
     r"\bmkfs(\.\w+)?\b",
     r"\bdd\s+.*\bof=/dev/",
+    # macOS
+    r"\bdiskutil\s+(erase\w*|zero\w*|reformat|secureerase|partitiondisk)\b",
+    r"\bcsrutil\b",
+    r"\brm\s+(-\w+\s+)*(~|\$home|\$\{home\})/?(\s|$)",
 ]
 _DENY_RE = [re.compile(p, re.IGNORECASE) for p in _DENY_PATTERNS]
 
@@ -125,17 +129,46 @@ def redact(text: str) -> str:
 
 def history_file() -> Path | None:
     """The current shell's saved command history file, if it has one."""
+    home = Path.home()
     if CURRENT_SHELL in ("pwsh", "powershell"):
         appdata = os.environ.get("APPDATA")
-        if not appdata:
-            return None
-        folder = Path(appdata) / "Microsoft" / "Windows" / "PowerShell" / "PSReadLine"
+        if appdata:  # Windows
+            folder = Path(appdata) / "Microsoft" / "Windows" / "PowerShell" / "PSReadLine"
+        else:  # pwsh on macOS/Linux
+            folder = home / ".local" / "share" / "powershell" / "PSReadLine"
         files = sorted(folder.glob("*_history.txt"), key=lambda f: f.stat().st_mtime, reverse=True)
         return files[0] if files else None
-    if CURRENT_SHELL == "bash":
-        f = Path.home() / ".bash_history"
+    if CURRENT_SHELL in ("bash", "zsh", "sh"):
+        histfile = os.environ.get("HISTFILE")
+        default = ".zsh_history" if CURRENT_SHELL == "zsh" else ".bash_history"
+        f = Path(histfile) if histfile else home / default
+        return f if f.exists() else None
+    if CURRENT_SHELL == "fish":
+        f = home / ".local" / "share" / "fish" / "fish_history"
         return f if f.exists() else None
     return None  # cmd.exe keeps no history on disk
+
+
+_ZSH_EXTENDED = re.compile(r"^: \d+:\d+;")
+
+
+def parse_history(shell: str, text: str) -> list[str]:
+    """Turn a shell history file's text into a list of commands, oldest first."""
+    if shell == "fish":
+        # fish_history is YAML-ish: "- cmd: <command>" followed by indented metadata.
+        return [ln[len("- cmd: "):].strip() for ln in text.splitlines() if ln.startswith("- cmd: ")]
+    commands: list[str] = []
+    pending = ""
+    for raw in text.splitlines():
+        line = _ZSH_EXTENDED.sub("", raw) if shell == "zsh" else raw
+        if shell == "zsh" and line.endswith("\\"):  # zsh stores multi-line commands with trailing backslashes
+            pending += line[:-1] + "\n"
+            continue
+        line = (pending + line).strip()
+        pending = ""
+        if line:
+            commands.append(line)
+    return commands
 
 
 def get_environment() -> str:
@@ -232,7 +265,7 @@ def which(command: str) -> str:
 
 
 def command_help(command: str) -> str:
-    """Show the built-in help text for a command (Get-Help in PowerShell, `/?` in cmd, `--help` otherwise). Read-only.
+    """Show the built-in help text for a command (Get-Help in PowerShell, `/?` in cmd, `--help` or the man page otherwise). Read-only.
 
     Args:
         command: The command name only, e.g. "Get-ChildItem", "robocopy", "git".
@@ -250,7 +283,12 @@ def command_help(command: str) -> str:
     elif CURRENT_SHELL == "cmd":
         cmd = f"{command} /?"
     else:
-        cmd = f"{command} --help"
+        # Many macOS/BSD tools don't support --help; fall back to the man page.
+        out = run_in_shell(f"{command} --help", CURRENT_SHELL, timeout=20)
+        body = out.split("\n", 1)[1].strip() if "\n" in out else ""
+        if out.startswith("exit code: 0") and body:
+            return out
+        return run_in_shell(f"man {command} 2>/dev/null | col -b", CURRENT_SHELL, timeout=20)
     return run_in_shell(cmd, CURRENT_SHELL, timeout=20)
 
 
@@ -275,8 +313,8 @@ def recent_commands(count: int = 10) -> str:
             tail = fh.read().decode("utf-8", errors="replace")
     except OSError as e:
         return f"error reading shell history: {e}"
-    lines = [ln.strip() for ln in tail.splitlines()]
-    lines = [ln for ln in lines if ln and ln != "sage" and not ln.startswith("sage ")]
+    lines = parse_history(CURRENT_SHELL, tail)
+    lines = [ln for ln in lines if ln != "sage" and not ln.startswith("sage ")]
     recent = lines[-count:]
     if not recent:
         return "Shell history is empty."

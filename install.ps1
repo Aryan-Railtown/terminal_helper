@@ -33,7 +33,8 @@ if (-not (Test-Path $configFile)) { Copy-Item (Join-Path $repo "config.example.t
 # Point `railtracks viz --beta` (run from this folder) at sage's run logs. railtracks reads
 # the .env in the folder it starts from; this repo .env is gitignored and holds no keys.
 $repoEnv = Join-Path $repo ".env"
-$vizLine = if ($env:SAGE_HOME) { "RAILTRACKS_HOME=$env:SAGE_HOME" } else { 'RAILTRACKS_HOME=${USERPROFILE}/.sage' }
+# Absolute path, so the same .env line is correct whatever OS/shell later reads it.
+$vizLine = "RAILTRACKS_HOME=$sageHome"
 $hasViz = (Test-Path $repoEnv) -and (Select-String -Path $repoEnv -Pattern '^\s*RAILTRACKS_HOME\s*=' -Quiet)
 if (-not $hasViz) {
     $sep = ""

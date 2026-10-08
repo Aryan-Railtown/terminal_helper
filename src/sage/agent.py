@@ -15,17 +15,53 @@ _SHELL_NAMES = {
     "pwsh": "PowerShell 7 (pwsh)",
     "powershell": "Windows PowerShell 5.1",
     "cmd": "cmd.exe",
-    "bash": "bash (likely Git Bash)",
+    "bash": "bash",
+    "zsh": "zsh",
+    "fish": "fish",
+    "sh": "POSIX sh",
 }
+
+# Per-OS hints so answers use the right tool flavours.
+_OS_HINTS = {
+    "Darwin": (
+        "- This is macOS: tools are BSD flavours (e.g. `sed -i ''`, `lsof -i :PORT` to find what uses a port, "
+        "`open` to open files/URLs, `pbcopy`/`pbpaste` for the clipboard, Homebrew `brew` for installs).\n"
+    ),
+    "Linux": "- This is Linux: GNU coreutils; use the distro's package manager if installs come up.\n",
+    "Windows": "",
+}
+
+
+def os_label() -> str:
+    system = platform.system()
+    if system == "Darwin":
+        version = platform.mac_ver()[0]
+        return f"macOS {version}".strip()
+    if system == "Windows":
+        # platform.release() says "10" on Windows 11; builds >= 22000 are Windows 11.
+        try:
+            build = int(platform.version().split(".")[-1])
+        except ValueError:
+            build = 0
+        return "Windows 11" if build >= 22000 else f"Windows {platform.release()}"
+    return f"{system} {platform.release()}"
+
+
+def shell_label(shell: str) -> str:
+    if shell == "bash" and platform.system() == "Windows":
+        return "bash (likely Git Bash)"
+    if shell == "zsh" and platform.system() == "Darwin":
+        return "zsh (the macOS default)"
+    return _SHELL_NAMES.get(shell, shell)
 
 
 def build_system_message(shell: str, cwd: str, today: date | None = None) -> str:
     today = today or date.today()
-    shell_name = _SHELL_NAMES.get(shell, shell)
+    shell_name = shell_label(shell)
     return f"""You are sage, a concise terminal assistant living in the user's shell.
 
 Environment:
-- OS: {platform.system()} {platform.release()}
+- OS: {os_label()}
 - Shell: {shell_name} [{shell}]
 - Current directory: {cwd}
 - Date: {today.isoformat()}
@@ -33,7 +69,7 @@ Environment:
 How to answer:
 - Be brief and terminal-first. Your output is rendered as markdown in a terminal: use fenced code blocks with a language tag, short bullet lists and **bold** sparingly; no tables or headings.
 - When the answer is a command, lead with the exact command in a fenced code block, written for the user's shell ({shell_name}), then one or two short lines of explanation.
-- If the user asks something general, just answer it in a few sentences.
+{_OS_HINTS.get(platform.system(), "")}- If the user asks something general, just answer it in a few sentences.
 - Check facts with your read-only tools (which, list_directory, read_file, command_help, get_environment, git_overview, recent_commands) instead of guessing whether something is installed or exists.
 - For git questions in a repository, look at git_overview first so your answer fits their actual state.
 - For "what did I just break?" / "explain this error" with no error text, use recent_commands and git_overview to see what they did. If text was piped into sage, that is the output to explain.
